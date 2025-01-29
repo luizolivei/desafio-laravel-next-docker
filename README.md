@@ -34,6 +34,11 @@
    docker-compose build
    ```
 
+3. **Instalar** as dependencias do laravel:
+   ```bash
+   docker-compose exec laravel composer install
+   ```
+   
 3. **Subir** os containers em segundo plano:
    ```bash
    docker-compose up -d
