@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  laravel:
+    build:
+      context: ./laravel
+      dockerfile: Dockerfile
+    container_name: laravel-app
+    volumes:
+      - ./laravel:/var/www/html
+    ports:
+      - "9000:9000"
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_DATABASE=jukebox
+      - DB_USERNAME=laravel
+      - DB_PASSWORD=secret
+    depends_on:
+      - db
+
+  next:
+    build:
+      context: ./next
+      dockerfile: Dockerfile
+    container_name: next-app
+    volumes:
+      - ./next:/usr/src/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - laravel
+
+#  jdbc:mysql://localhost:3306/jukebox?user=laravel&password=secret
+  db:
+    image: mysql:8
+    container_name: mysql-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: jukebox
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  db-data:
