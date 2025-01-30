@@ -2,9 +2,14 @@
 FROM php:8.2-apache as web
 
 # Install Additional System Dependencies
-#RUN apt-get update && apt-get install -y \
-#    libzip-dev \
-#    zip
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    zip \
+    unzip \
+    && docker-php-ext-install zip \
+    && docker-php-ext-enable zip \
+    && docker-php-ext-install fileinfo \
+    && docker-php-ext-enable fileinfo
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -18,13 +23,15 @@ ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-RUN composer install
 
 # Copy the application code
 COPY . /var/www/html
 
 # Set the working directory
 WORKDIR /var/www/html
+
+RUN composer install
+
 
 # Install composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
