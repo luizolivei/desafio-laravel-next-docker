@@ -33,11 +33,6 @@
    ```bash
    docker-compose build
    ```
-
-3. **Instalar** as dependencias do laravel:
-   ```bash
-   docker-compose exec laravel composer install
-   ```
    
 3. **Subir** os containers em segundo plano:
    ```bash
@@ -47,6 +42,11 @@
 4. **Verificar** se os contêineres estão rodando:
    ```bash
    docker-compose ps
+   ```
+   
+5. **Rode o migration** para atualizar o seu banco:
+   ```bash
+   docker exec laravel-app php artisan migrate
    ```
 
 ---
