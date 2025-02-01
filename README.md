@@ -44,9 +44,14 @@
    docker-compose ps
    ```
    
-5. **Rode o migration** para atualizar o seu banco:
+5. **Rode o migration** para atualizar o seu banco e criar as tabelas:
    ```bash
    docker exec laravel-app php artisan migrate
+   ```   
+   
+6. **Realize o import** dos arquivos:
+   ```bash
+   docker exec laravel-app php artisan import ./uploads/music.csv
    ```
 
 ---
@@ -66,7 +71,7 @@
 - **Banco**: `jukebox`
 - **Usuário**: `laravel`
 - **Senha**: `secret`
-- **Root Password**: `root`
+- **Portal**: `3306`
 
 ```
 jdbc:mysql://localhost:3306/jukebox?user=laravel&password=secret
