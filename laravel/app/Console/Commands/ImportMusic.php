@@ -49,39 +49,48 @@ class ImportMusic extends Command
             return 1;
         }
 
+        $fileContent = file_get_contents($filePath);
+        $fileContent = preg_replace('/^\xEF\xBB\xBF/', '', $fileContent);
+        file_put_contents($filePath, $fileContent);
+
         $rowCount = 0;
         $arrErrors = [];
-        while (($data = fgetcsv($handle, 1000, ',')) !== false) {
+        $handle = fopen($filePath, 'r');
+        fgetcsv($handle);
+        $delimiter = ',';
+        while (($data = fgetcsv($handle, 1000, $delimiter)) !== false) {
             // title, artist, album, isrc, platform, trackId, duration, addedDate, addedBy, url
             $row = array_combine($header, $data);
 
-//            if(empty($row['title'])) {
-//                $arrErrors[] = 'Uma das musicas importadas não havia titulo';
-//                continue;
-//            }
-//
-//            $title = $row['title'];
-            $title = "teste";
+            dump($row['artist']);
+
+
+            if (empty($row['title'])) {
+                $arrErrors[] = 'Uma das musicas importadas não havia titulo';
+                continue;
+            }
+
+            $title = $row['title'];
 
             //Validacoes de itens obrigatorios
             $hasError = false;
-            if(empty($row['album'])) {
+            if (empty($row['album'])) {
                 $arrErrors[] = 'A musica ' . $title . ' não possui um album';
                 $hasError = true;
             }
-            if(empty($row['platform'])) {
+            if (empty($row['platform'])) {
                 $arrErrors[] = 'A musica ' . $title . ' não possui uma plataforma';
                 $hasError = true;
             }
-            if(empty($row['trackId'])) {
+            if (empty($row['trackId'])) {
                 $arrErrors[] = 'A musica ' . $title . ' não possui uma trackId';
                 $hasError = true;
             }
-            if(empty($row['duration'])) {
+            if (empty($row['duration'])) {
                 $arrErrors[] = 'A musica ' . $title . ' não tem duração';
                 $hasError = true;
             }
-            if(empty($row['url'])) {
+            if (empty($row['url'])) {
                 $arrErrors[] = 'A musica ' . $title . ' não possui uma url';
                 $hasError = true;
             }
@@ -89,44 +98,57 @@ class ImportMusic extends Command
             if ($hasError) continue;
 
             // separa os artistas atraves da virgula e cria eles
-            $arrArtists = implode(', ', $row['artist']);
+            $arrArtists = explode(',', $row['artist']);
             $arrArtistIds = [];
             foreach ($arrArtists as $artist) {
                 $artist = trim($artist);
-                $artist = Artist::firstOrCreate(
-                    ['artist' => $artist]
-                );
-                $arrArtistIds[] = $artist->id;
+
+                // Verificar se já existe no banco
+                $existingArtist = Artist::where('artist', $artist)->first();
+
+                if ($existingArtist) {
+                    $arrArtistIds[] = $existingArtist->id;
+                } else {
+                    // Criar se não encontrado
+                    $newArtist = Artist::create(['artist' => $artist]);
+                    $arrArtistIds[] = $newArtist->id;
+                }
             }
 
-            // Procura ou cria o álbum
-            $album = Album::firstOrCreate(
-                ['album' => $row['album']]
-            );
+            // Buscar ou criar o álbum
+            $existingAlbum = Album::where('album', $row['album'])->first();
+            $albumId = $existingAlbum ? $existingAlbum->id : Album::create(['album' => $row['album']])->id;
 
-            // Procura ou cria a plataforma
-            $plataform = Plataform::firstOrCreate(
-                ['plataform' => $row['platform']]
-            );
+            // Buscar ou criar a plataforma
+            $existingPlataform = Plataform::where('plataform', $row['platform'])->first();
+            $plataformId = $existingPlataform ? $existingPlataform->id : Plataform::create(['plataform' => $row['platform']])->id;
+
+            dump("plataforma" . $plataformId);
 
             // Converte a data, se houver
-            $addedDate = !empty($row['addedDate']) ? Carbon::parse($row['addedDate']) : null;
+            $addedDate = null;
+            if (!empty($row['addedDate']) && strtotime($row['addedDate']) !== false) {
+                $addedDate = Carbon::parse($row['addedDate']);
+            }
 
             // Cria o registro na tabela musics
-            $music = Music::create([
-                'title'        => $title,
-                'album_id'     => $album->id,
-                'isrc'         => $row['isrc'],
-                'plataform_id' => $plataform->id,
-                'trackId'      => $row['trackId'],
-                'duration'     => $row['duration'],
-                'addedDate'    => $addedDate,
-                'addedBy'      => !empty($row['addedBy']) ? $row['addedBy'] : null,
-                'url'      => ($row['url']),
-            ]);
+            $existingMusic = Music::where('trackId', $row['trackId'])->first();
+            if (!$existingMusic) {
+                $music = Music::create([
+                    'title' => $title,
+                    'album_id' => $albumId,
+                    'isrc' => $row['isrc'],
+                    'plataform_id' => $plataformId,
+                    'trackId' => $row['trackId'],
+                    'duration' => $row['duration'],
+                    'addedDate' => $addedDate,
+                    'addedBy' => !empty($row['addedBy']) ? $row['addedBy'] : null,
+                    'url' => ($row['url']),
+                ]);
 
-            // associa a lista de artistas com a musica
-            $music->artists()->attach($arrArtistIds);
+                // associa a lista de artistas com a musica
+                $music->artists()->attach($arrArtistIds);
+            }
 
             $rowCount++;
         }

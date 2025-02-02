@@ -15,7 +15,7 @@ class Music extends Model
         'title',
         'album_id',
         'isrc',
-        'platform_id',
+        'plataform_id',
         'trackId',
         'duration',
         'addedDate',
