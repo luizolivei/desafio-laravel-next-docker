@@ -13,17 +13,13 @@ class ImportMusic extends Command
 {
     /**
      * O nome e assinatura do comando.
-     *
-     * @var string
      */
     protected $signature = 'import {file : Caminho para o arquivo CSV}';
 
     /**
      * A descrição do comando.
-     *
-     * @var string
      */
-    protected $description = 'Importa os CSV com musicas para dentro do sistema';
+    protected $description = 'Importa os CSV com músicas para dentro do sistema';
 
     /**
      * Executa o comando.
@@ -31,140 +27,157 @@ class ImportMusic extends Command
     public function handle()
     {
         $filePath = $this->argument('file');
+        if (!$this->fileExists($filePath)) {
+            return 1;
+        }
 
+        $header = $this->getCsvHeader($filePath);
+        if (!$header) {
+            $this->error("O arquivo CSV não possui cabeçalho válido.");
+            return 1;
+        }
+
+        $rowCount = $this->processCsv($filePath, $header);
+
+        if ($rowCount > 0) {
+            $this->info("Importação concluída com sucesso. {$rowCount} registro(s) importado(s).");
+        }
+        return 0;
+    }
+
+    /**
+     * Verifica se o arquivo existe.
+     */
+    private function fileExists($filePath): bool
+    {
         if (!file_exists($filePath)) {
             $this->error("Arquivo {$filePath} não encontrado.");
-            return 1;
+            return false;
         }
+        return true;
+    }
 
-        if (($handle = fopen($filePath, 'r')) === false) {
-            $this->error("Não foi possível abrir o arquivo {$filePath}.");
-            return 1;
-        }
-
-        // Ler o cabeçalho do CSV para mapear as colunas
-        $header = fgetcsv($handle, 1000, ',');
-        if (!$header) {
-            $this->error("O arquivo CSV não possui cabeçalho, o padrão é: title, artist, album, isrc, platform, trackId, duration, addedDate, addedBy, url");
-            return 1;
-        }
-
-        $fileContent = file_get_contents($filePath);
-        $fileContent = preg_replace('/^\xEF\xBB\xBF/', '', $fileContent);
-        file_put_contents($filePath, $fileContent);
-
-        $rowCount = 0;
-        $arrErrors = [];
+    /**
+     * Lê e retorna o cabeçalho do CSV.
+     */
+    private function getCsvHeader($filePath): ?array
+    {
         $handle = fopen($filePath, 'r');
+        $header = fgetcsv($handle, 1000, ',');
+        fclose($handle);
+        return $header ?: null;
+    }
+
+    /**
+     * Processa o CSV linha a linha.
+     */
+    private function processCsv($filePath, $header): int
+    {
+        $rowCount = 0;
+        $handle = fopen($filePath, 'r');
+        // Precisa utilizar o fgetcsv porque senao a primeira insercao no bd sera utilizando todos os campos do cabecalho
         fgetcsv($handle);
-        $delimiter = ',';
-        while (($data = fgetcsv($handle, 1000, $delimiter)) !== false) {
-            // title, artist, album, isrc, platform, trackId, duration, addedDate, addedBy, url
+
+        while (($data = fgetcsv($handle, 1000, ',')) !== false) {
             $row = array_combine($header, $data);
 
-            dump($row['artist']);
-
-
-            if (empty($row['title'])) {
-                $arrErrors[] = 'Uma das musicas importadas não havia titulo';
+            if (!$this->validateRow($row)) {
                 continue;
             }
 
-            $title = $row['title'];
+            $artistIds = $this->getOrCreateArtistis($row['artist']);
+            $albumId = $this->getOrCreateAlbum($row['album']);
+            $platformId = $this->getOrCreatePlatform($row['platform']);
+            $addedDate = $this->parseDate($row['addedDate']);
 
-            //Validacoes de itens obrigatorios
-            $hasError = false;
-            if (empty($row['album'])) {
-                $arrErrors[] = 'A musica ' . $title . ' não possui um album';
-                $hasError = true;
-            }
-            if (empty($row['platform'])) {
-                $arrErrors[] = 'A musica ' . $title . ' não possui uma plataforma';
-                $hasError = true;
-            }
-            if (empty($row['trackId'])) {
-                $arrErrors[] = 'A musica ' . $title . ' não possui uma trackId';
-                $hasError = true;
-            }
-            if (empty($row['duration'])) {
-                $arrErrors[] = 'A musica ' . $title . ' não tem duração';
-                $hasError = true;
-            }
-            if (empty($row['url'])) {
-                $arrErrors[] = 'A musica ' . $title . ' não possui uma url';
-                $hasError = true;
-            }
-
-            if ($hasError) continue;
-
-            // separa os artistas atraves da virgula e cria eles
-            $arrArtists = explode(',', $row['artist']);
-            $arrArtistIds = [];
-            foreach ($arrArtists as $artist) {
-                $artist = trim($artist);
-
-                // Verificar se já existe no banco
-                $existingArtist = Artist::where('artist', $artist)->first();
-
-                if ($existingArtist) {
-                    $arrArtistIds[] = $existingArtist->id;
-                } else {
-                    // Criar se não encontrado
-                    $newArtist = Artist::create(['artist' => $artist]);
-                    $arrArtistIds[] = $newArtist->id;
-                }
-            }
-
-            // Buscar ou criar o álbum
-            $existingAlbum = Album::where('album', $row['album'])->first();
-            $albumId = $existingAlbum ? $existingAlbum->id : Album::create(['album' => $row['album']])->id;
-
-            // Buscar ou criar a plataforma
-            $existingPlataform = Plataform::where('plataform', $row['platform'])->first();
-            $plataformId = $existingPlataform ? $existingPlataform->id : Plataform::create(['plataform' => $row['platform']])->id;
-
-            dump("plataforma" . $plataformId);
-
-            // Converte a data, se houver
-            $addedDate = null;
-            if (!empty($row['addedDate']) && strtotime($row['addedDate']) !== false) {
-                $addedDate = Carbon::parse($row['addedDate']);
-            }
-
-            // Cria o registro na tabela musics
-            $existingMusic = Music::where('trackId', $row['trackId'])->first();
-            if (!$existingMusic) {
-                $music = Music::create([
-                    'title' => $title,
-                    'album_id' => $albumId,
-                    'isrc' => $row['isrc'],
-                    'plataform_id' => $plataformId,
-                    'trackId' => $row['trackId'],
-                    'duration' => $row['duration'],
-                    'addedDate' => $addedDate,
-                    'addedBy' => !empty($row['addedBy']) ? $row['addedBy'] : null,
-                    'url' => ($row['url']),
-                ]);
-
-                // associa a lista de artistas com a musica
-                $music->artists()->attach($arrArtistIds);
-            }
-
+            $this->createMusicRecord($row, $albumId, $platformId, $artistIds, $addedDate);
             $rowCount++;
         }
+
         fclose($handle);
+        return $rowCount;
+    }
 
-        if (!empty($arrErrors)) {
-            $this->info("Não foi possivel importar todos os dados. Apenas {$rowCount} registro(s) foram importado(s).");
-            $this->info("Os seguintes erros foram encontrados:");
-
-            foreach ($arrErrors as $error) {
-                $this->error($error);
+    /**
+     * Valida as colunas que nao podem ser nulas no bd.
+     */
+    private function validateRow($row): bool
+    {
+        $requiredFields = ['title', 'album', 'platform', 'trackId', 'duration', 'url'];
+        foreach ($requiredFields as $field) {
+            if (empty($row[$field])) {
+                $this->error("Linha ignorada: {$field} é obrigatório.");
+                return false;
             }
-            return 1;
+        }
+        return true;
+    }
+
+    /**
+     * Busca ou cria artistas e retorna os ids deles.
+     */
+    private function getOrCreateArtistis(string $artists): array
+    {
+        $artistNames = explode(',', $artists);
+        $artistIds = [];
+
+        foreach ($artistNames as $artist) {
+            $artist = trim($artist);
+            $existingArtist = Artist::firstOrCreate(['artist' => $artist]);
+            $artistIds[] = $existingArtist->id;
         }
 
-        $this->info("Importação concluída com sucesso. {$rowCount} registro(s) importado(s).");
-        return 0;
+        return $artistIds;
+    }
+
+    /**
+     * Busca ou cria um album e retorna o ID.
+     */
+    private function getOrCreateAlbum(string $album): int
+    {
+        $existingAlbum = Album::firstOrCreate(['album' => $album]);
+        return $existingAlbum->id;
+    }
+
+    /**
+     * Busca ou cria uma plataforma e retorna o ID.
+     */
+    private function getOrCreatePlatform(string $platform): int
+    {
+        $existingPlatform = Plataform::firstOrCreate(['plataform' => $platform]);
+        return $existingPlatform->id;
+    }
+
+    /**
+     * Converte uma data de string para objeto Carbon.
+     */
+    private function parseDate(?string $date): ?Carbon
+    {
+        return !empty($date) && strtotime($date) !== false ? Carbon::parse($date) : null;
+    }
+
+    /**
+     * Cria ou ignora um registro de música se o `trackId` já existir.
+     */
+    private function createMusicRecord($row, $albumId, $platformId, $artistIds, $addedDate)
+    {
+        if (Music::where('trackId', $row['trackId'])->exists()) {
+            $this->info("Música com trackId {$row['trackId']} já existe. Ignorando.");
+            return;
+        }
+
+        $music = Music::create([
+            'title' => $row['title'],
+            'album_id' => $albumId,
+            'isrc' => $row['isrc'] ?? null,
+            'plataform_id' => $platformId,
+            'trackId' => $row['trackId'],
+            'duration' => $row['duration'],
+            'addedDate' => $addedDate,
+            'addedBy' => empty($row['addedBy']) ? null : $row['addedBy'],
+            'url' => $row['url'],
+        ]);
+
+        $music->artists()->attach($artistIds);
     }
 }
