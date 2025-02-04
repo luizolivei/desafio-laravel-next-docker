@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Music extends Model
 {
@@ -21,6 +22,10 @@ class Music extends Model
         'addedDate',
         'addedBy',
         'url',
+    ];
+
+    protected $casts = [
+        'addedDate' => 'datetime',
     ];
 
     /**
@@ -46,8 +51,10 @@ class Music extends Model
         return $this->belongsTo(User::class, 'id');
     }
 
-    protected $casts = [
-        'addedDate' => 'datetime',
-    ];
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'music_user', 'music_id', 'user_id')
+            ->withTimestamps();
+    }
 
 }

@@ -1,8 +1,14 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MusicController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\RegisteredUserController;
 
+/**
+ * Testes
+ */
 Route::post("/backend-response", function () {
     return 'Ok!';
 });
@@ -17,9 +23,16 @@ Route::get('/mysql-response', function () {
     }
 });
 
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-
+/**
+ * Autenticacao
+ */
 Route::post('/register', [RegisteredUserController::class, 'store']);
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->middleware('auth:sanctum');
+
+/**
+ * Relacionamento das musicas
+ */
+
+Route::post('/music/{music_id}/user/{user_id}', [MusicController::class, 'associateToUser']);
+Route::get('/user/{user_id}/musics', [MusicController::class, 'getUserMusics']);

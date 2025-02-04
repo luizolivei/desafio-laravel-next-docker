@@ -45,4 +45,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Relação com as suas musicas
+     */
+    public function musics(): BelongsToMany
+    {
+        return $this->belongsToMany(Music::class, 'music_user', 'user_id', 'music_id')
+            ->withTimestamps();
+    }
 }

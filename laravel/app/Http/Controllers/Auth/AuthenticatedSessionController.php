@@ -11,24 +11,24 @@ class AuthenticatedSessionController extends Controller
     public function store(Request $request)
     {
         try {
-        $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+            $request->validate([
+                'email' => ['required', 'string', 'email'],
+                'password' => ['required', 'string'],
+            ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Invalid login credentials'], 401);
-        }
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                return response()->json(['message' => 'Invalid login credentials'], 401);
+            }
 
-        $user = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;
+            $user = Auth::user();
+            $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'user' => $user,
-            'status' => 'Login successful',
-        ]);
+            return response()->json([
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => $user,
+                'status' => 'Login successful',
+            ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'Something went wrong',
