@@ -3,22 +3,20 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return ['version' => app()->version()];
+    return ['versao' => app()->version()];
 });
 
 // Rota para testar o Xdebug
 Route::get('/test-xdebug', function () {
-    // Inicialização de variáveis para teste
     $a = 5;
     $b = 10;
     $sum = $a + $b;
 
-    // Coloque um breakpoint na linha abaixo para inspecionar as variáveis
     for ($i = 0; $i < 3; $i++) {
+        //colocar um breakpoint aqui
         $sum += $i;
     }
 
-    // Outra variável para exemplificar
     $mensagem = "O resultado final é: " . $sum;
 
     // Retorna os dados como JSON
