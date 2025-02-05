@@ -71,8 +71,8 @@
 - **Banco**: `jukebox`
 - **Usuário**: `root`
 - **Senha**: `root`
-- **Portal**: `3306`
+- **Porta**: `3306`
 
 ```
-jdbc:mysql://localhost:3306/jukebox?user=laravel&password=secret
+jdbc:mysql://localhost:3306/jukebox?user=root&password=root
 ```
