@@ -62,15 +62,15 @@
   Acesse **http://localhost:3000**
 
 - **Laravel**:  
-  POST /api/music/1/user/2 ... ... ...
+  API *http://localhost:9000**
 
 ---
 
 ## Conectando ao banco MySQL
 
 - **Banco**: `jukebox`
-- **Usuário**: `laravel`
-- **Senha**: `secret`
+- **Usuário**: `root`
+- **Senha**: `root`
 - **Portal**: `3306`
 
 ```
