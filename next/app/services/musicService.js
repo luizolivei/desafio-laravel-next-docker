@@ -1,15 +1,11 @@
-import axios from 'axios';
+import apiClient from './apiClient';
 
 /**
  * Busca todas as músicas disponíveis no sistema.
  */
-export const fetchAllMusics = async (token) => {
+export const fetchAllMusics = async () => {
     try {
-        const response = await axios.get('http://localhost:9000/api/musics', {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        const response = await apiClient.get('/musics');
         return response.data.data;
     } catch (err) {
         throw new Error(err.response?.data?.error || 'Erro ao buscar músicas.');
@@ -19,13 +15,9 @@ export const fetchAllMusics = async (token) => {
 /**
  * Busca as músicas associadas a um usuário.
  */
-export const fetchUserMusics = async (userId, token) => {
+export const fetchUserMusics = async (userId) => {
     try {
-        const response = await axios.get(`http://localhost:9000/api/user/${userId}/musics`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        const response = await apiClient.get(`/user/${userId}/musics`);
         return response.data.data;
     } catch (err) {
         throw new Error('Erro ao buscar músicas do usuário.');
@@ -35,13 +27,9 @@ export const fetchUserMusics = async (userId, token) => {
 /**
  * Adiciona uma música à jukebox do usuário.
  */
-export const addMusicToJukebox = async (musicId, userId, token) => {
+export const addMusicToJukebox = async (musicId, userId) => {
     try {
-        const response = await axios.post(`http://localhost:9000/api/music/${musicId}/user/${userId}`, {}, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        const response = await apiClient.post(`/music/${musicId}/user/${userId}`);
         return response.data.message || 'Música adicionada com sucesso!';
     } catch (err) {
         throw new Error(err.response?.data?.error || 'Erro ao adicionar música à jukebox.');
@@ -51,13 +39,9 @@ export const addMusicToJukebox = async (musicId, userId, token) => {
 /**
  * Remove uma música da jukebox do usuário.
  */
-export const removeMusicFromJukebox = async (musicId, userId, token) => {
+export const removeMusicFromJukebox = async (musicId, userId) => {
     try {
-        await axios.delete(`http://localhost:9000/api/music/${musicId}/user/${userId}`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        await apiClient.delete(`/music/${musicId}/user/${userId}`);
     } catch (err) {
         throw new Error('Erro ao remover música da jukebox.');
     }
@@ -66,13 +50,9 @@ export const removeMusicFromJukebox = async (musicId, userId, token) => {
 /**
  * Busca todos os usuários e suas músicas.
  */
-export const fetchUsersWithMusics = async (token) => {
+export const fetchUsersWithMusics = async () => {
     try {
-        const response = await axios.get('http://localhost:9000/api/users-with-musics', {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
+        const response = await apiClient.get('/users-with-musics');
         return response.data;
     } catch (err) {
         throw new Error(err.response?.data?.error || 'Erro ao buscar usuários e suas músicas.');

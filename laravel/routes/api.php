@@ -35,7 +35,11 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->midd
  */
 
 Route::get('/musics', [MusicController::class, 'getAllMusics']);
-Route::post('/music/{music_id}/user/{user_id}', [MusicController::class, 'associateMusicToUser']);
-Route::delete('/music/{music_id}/user/{user_id}', [MusicController::class, 'dissociateMusicToUser']);
 Route::get('/user/{user_id}/musics', [MusicController::class, 'getUserMusics']);
 Route::get('/users-with-musics', [MusicController::class, 'getUsersWithMusics']);
+
+Route::post('/music/{music_id}/user/{user_id}', [MusicController::class, 'associateMusicToUser'])
+    ->middleware(['auth:sanctum', 'validate.user.action']);
+
+Route::delete('/music/{music_id}/user/{user_id}', [MusicController::class, 'dissociateMusicToUser'])
+    ->middleware(['auth:sanctum', 'validate.user.action']);
