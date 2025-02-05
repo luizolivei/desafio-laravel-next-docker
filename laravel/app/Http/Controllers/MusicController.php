@@ -108,22 +108,31 @@ class MusicController extends Controller
     }
 
     /**
-     * Retorna todas as músicas disponíveis.
+     * Retorna todas as músicas disponíveis com detalhes completos.
      */
     public function getAllMusics()
     {
         try {
-            $musics = DB::select(
-                'SELECT
+            $musics = DB::select('
+            SELECT
                 musics.id,
                 musics.title,
+                GROUP_CONCAT(DISTINCT artists.artist SEPARATOR ", ") AS artists,
+                albuns.album AS album_name,
+                plataforms.plataform AS platform_name,
                 musics.isrc,
                 musics.trackId,
                 musics.duration,
                 musics.addedDate,
                 musics.url
-            FROM musics'
-            );
+            FROM musics
+            LEFT JOIN artist_music ON musics.id = artist_music.music_id
+            LEFT JOIN artists ON artists.id = artist_music.artist_id
+            LEFT JOIN albuns ON musics.album_id = albuns.id
+            LEFT JOIN plataforms ON musics.plataform_id = plataforms.id
+            GROUP BY musics.id
+            ORDER BY musics.title
+        ');
 
             if (empty($musics)) {
                 return response()->json([
@@ -145,17 +154,36 @@ class MusicController extends Controller
         }
     }
 
+    /**
+     * Retorna todos os usuarios e as suas musicas
+     */
     public function getUsersWithMusics()
     {
-        $usersWithMusics = DB::select('
-            SELECT users.id AS user_id, users.name AS user_name, musics.id AS music_id, musics.title AS music_title
-            FROM users
-            LEFT JOIN music_user ON users.id = music_user.user_id
-            LEFT JOIN musics ON musics.id = music_user.music_id
-            ORDER BY users.name
-        ');
+        try {
+        $usersWithMusics = DB::select("
+        SELECT
+            users.id AS user_id,
+            users.name AS user_name,
+            musics.id AS music_id,
+            musics.title AS music_title,
+            GROUP_CONCAT(DISTINCT artists.artist SEPARATOR ', ') AS artists,
+            albuns.album AS album_name,
+            plataforms.plataform AS platform_name,
+            musics.duration,
+            musics.url
+        FROM users
+        LEFT JOIN music_user ON users.id = music_user.user_id
+        LEFT JOIN musics ON musics.id = music_user.music_id
+        LEFT JOIN artist_music ON musics.id = artist_music.music_id
+        LEFT JOIN artists ON artists.id = artist_music.artist_id
+        LEFT JOIN albuns ON musics.album_id = albuns.id
+        LEFT JOIN plataforms ON musics.plataform_id = plataforms.id
+        WHERE musics.id IS NOT NULL
+        GROUP BY users.id, musics.id, albuns.album, plataforms.plataform, musics.duration, musics.url, musics.title
+        ORDER BY users.name
+    ");
 
-        // Reorganiza o resultado em um formato estruturado
+        // Reorganiza os dados de saída
         $structuredData = [];
         foreach ($usersWithMusics as $row) {
             $userId = $row->user_id;
@@ -166,15 +194,24 @@ class MusicController extends Controller
                 ];
             }
 
-            if ($row->music_id) {
-                $structuredData[$userId]['musics'][] = [
-                    'id' => $row->music_id,
-                    'title' => $row->music_title
-                ];
-            }
+            $structuredData[$userId]['musics'][] = [
+                'id' => $row->music_id,
+                'title' => $row->music_title,
+                'artists' => $row->artists,
+                'album_name' => $row->album_name,
+                'platform_name' => $row->platform_name,
+                'duration' => $row->duration,
+                'url' => $row->url
+            ];
         }
 
         return response()->json(array_values($structuredData));
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao buscar as músicas.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -187,6 +224,9 @@ class MusicController extends Controller
                 'SELECT
                 musics.id,
                 musics.title,
+                GROUP_CONCAT(artists.artist SEPARATOR \', \') AS artists,
+                albuns.album AS album_name,
+                plataforms.plataform AS platform_name,
                 musics.isrc,
                 musics.trackId,
                 musics.duration,
@@ -194,7 +234,12 @@ class MusicController extends Controller
                 musics.url
             FROM musics
             INNER JOIN music_user ON musics.id = music_user.music_id
-            WHERE music_user.user_id = ?',
+            LEFT JOIN artist_music ON musics.id = artist_music.music_id
+            LEFT JOIN artists ON artist_music.artist_id = artists.id
+            LEFT JOIN albuns ON musics.album_id = albuns.id
+            LEFT JOIN plataforms ON musics.plataform_id = plataforms.id
+            WHERE music_user.user_id = ?
+            GROUP BY musics.id, musics.title, albuns.album, plataforms.plataform, musics.isrc, musics.trackId, musics.duration, musics.addedDate, musics.url',
                 [$user_id]
             );
 
@@ -217,5 +262,6 @@ class MusicController extends Controller
             ], 500);
         }
     }
+
 
 }
