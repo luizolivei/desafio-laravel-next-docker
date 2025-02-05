@@ -1,14 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);  // Armazena o token de acesso
+    const [token, setToken] = useState(null);
     const router = useRouter();
+    const pathname = usePathname();
 
     // Verificar se o usuário está logado ao carregar o aplicativo
     useEffect(() => {
@@ -18,11 +19,10 @@ export const AuthProvider = ({ children }) => {
         if (storedToken && storedUser) {
             setToken(storedToken);
             setUser(storedUser);
-        } else {
+        } else if (pathname !== '/register') {
             router.push('/login');
         }
-
-    }, [router]);
+    }, [router, pathname]);
 
     // Função de login
     const login = (userData, accessToken) => {
