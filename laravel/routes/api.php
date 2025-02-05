@@ -34,5 +34,7 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->midd
  * Relacionamento das musicas
  */
 
-Route::post('/music/{music_id}/user/{user_id}', [MusicController::class, 'associateToUser']);
+Route::get('/musics', [MusicController::class, 'getAllMusics']);
+Route::post('/music/{music_id}/user/{user_id}', [MusicController::class, 'associateMusicToUser']);
+Route::delete('/music/{music_id}/user/{user_id}', [MusicController::class, 'dissociateMusicToUser']);
 Route::get('/user/{user_id}/musics', [MusicController::class, 'getUserMusics']);

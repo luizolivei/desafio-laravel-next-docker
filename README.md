@@ -39,7 +39,7 @@
    docker-compose up -d
    ```
 
-4. **Verificar** se os contêineres estão rodando:
+4. **Verificar** se os contêineres estão rodando antes do proximo passo:
    ```bash
    docker-compose ps
    ```
