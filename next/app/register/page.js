@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import Container from '../components/Container';
+import Container from '../components/layout/Container';
 
 export default function Register() {
   const [name, setName] = useState('');

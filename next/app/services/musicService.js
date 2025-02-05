@@ -62,3 +62,19 @@ export const removeMusicFromJukebox = async (musicId, userId, token) => {
         throw new Error('Erro ao remover música da jukebox.');
     }
 };
+
+/**
+ * Busca todos os usuários e suas músicas.
+ */
+export const fetchUsersWithMusics = async (token) => {
+    try {
+        const response = await axios.get('http://localhost:9000/api/users-with-musics', {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        return response.data;
+    } catch (err) {
+        throw new Error(err.response?.data?.error || 'Erro ao buscar usuários e suas músicas.');
+    }
+};

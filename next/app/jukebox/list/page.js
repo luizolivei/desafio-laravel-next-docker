@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { fetchAllMusics, addMusicToJukebox } from '../../services/musicService';
+import MusicTable from '../../components/MusicTable';
 
 export default function List() {
     const [musics, setMusics] = useState([]);
@@ -43,9 +44,13 @@ export default function List() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto mt-8">
-            <h1 className="text-2xl font-bold text-center">Lista de Músicas</h1>
-            <a href="/jukebox">Voltar para a jukebox</a>
+        <div className="max-w-5xl mx-auto p-5">
+            <h1 className="text-3xl font-bold mb-4 text-center">Lista de Músicas</h1>
+            <a href="/jukebox"
+               className="inline-block px-6 py-2 mt-3 text-white font-semibold bg-gradient-to-r from-blue-500 to-blue-700 rounded-lg shadow-lg hover:from-blue-700 hover:to-blue-900 focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
+            >
+                Voltar para a jukebox
+            </a>
 
             {successMessage && (
                 <div className="p-4 mt-4 text-green-700 bg-green-100 rounded">
@@ -59,33 +64,17 @@ export default function List() {
                 </div>
             )}
 
-            <table className="table-auto border-collapse border border-gray-300 w-full mt-5">
-                <thead>
-                <tr>
-                    <th className="border border-gray-300 px-4 py-2">Título</th>
-                    <th className="border border-gray-300 px-4 py-2">ISRC</th>
-                    <th className="border border-gray-300 px-4 py-2">Duração</th>
-                    <th className="border border-gray-300 px-4 py-2">Ações</th>
-                </tr>
-                </thead>
-                <tbody>
-                {musics.map((music) => (
-                    <tr key={music.id}>
-                        <td className="border border-gray-300 px-4 py-2">{music.title}</td>
-                        <td className="border border-gray-300 px-4 py-2">{music.isrc}</td>
-                        <td className="border border-gray-300 px-4 py-2">{music.duration}</td>
-                        <td className="border border-gray-300 px-4 py-2">
-                            <button
-                                onClick={() => addToJukebox(music.id)}
-                                className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
-                            >
-                                Adicionar à Jukebox
-                            </button>
-                        </td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
+            <MusicTable
+                musics={musics}
+                actions={(music) => (
+                    <button
+                        onClick={() => addToJukebox(music.id)}
+                        className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+                    >
+                        Adicionar à Jukebox
+                    </button>
+                )}
+            />
         </div>
     );
 }
