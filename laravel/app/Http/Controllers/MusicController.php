@@ -108,6 +108,76 @@ class MusicController extends Controller
     }
 
     /**
+     * Retorna todas as músicas disponíveis.
+     */
+    public function getAllMusics()
+    {
+        try {
+            $musics = DB::select(
+                'SELECT
+                musics.id,
+                musics.title,
+                musics.isrc,
+                musics.trackId,
+                musics.duration,
+                musics.addedDate,
+                musics.url
+            FROM musics'
+            );
+
+            if (empty($musics)) {
+                return response()->json([
+                    'message' => 'Não há músicas disponíveis.',
+                    'data' => []
+                ]);
+            }
+
+            return response()->json([
+                'message' => count($musics) . ' músicas encontradas',
+                'data' => $musics
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Erro ao buscar músicas.',
+                'details' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getUsersWithMusics()
+    {
+        $usersWithMusics = DB::select('
+            SELECT users.id AS user_id, users.name AS user_name, musics.id AS music_id, musics.title AS music_title
+            FROM users
+            LEFT JOIN music_user ON users.id = music_user.user_id
+            LEFT JOIN musics ON musics.id = music_user.music_id
+            ORDER BY users.name
+        ');
+
+        // Reorganiza o resultado em um formato estruturado
+        $structuredData = [];
+        foreach ($usersWithMusics as $row) {
+            $userId = $row->user_id;
+            if (!isset($structuredData[$userId])) {
+                $structuredData[$userId] = [
+                    'user_name' => $row->user_name,
+                    'musics' => []
+                ];
+            }
+
+            if ($row->music_id) {
+                $structuredData[$userId]['musics'][] = [
+                    'id' => $row->music_id,
+                    'title' => $row->music_title
+                ];
+            }
+        }
+
+        return response()->json(array_values($structuredData));
+    }
+
+    /**
      * Retorna todas as músicas associadas a um usuário.
      */
     public function getUserMusics($user_id)
@@ -148,41 +218,4 @@ class MusicController extends Controller
         }
     }
 
-    /**
-     * Retorna todas as músicas disponíveis.
-     */
-    public function getAllMusics()
-    {
-        try {
-            $musics = DB::select(
-                'SELECT
-                musics.id,
-                musics.title,
-                musics.isrc,
-                musics.trackId,
-                musics.duration,
-                musics.addedDate,
-                musics.url
-            FROM musics'
-            );
-
-            if (empty($musics)) {
-                return response()->json([
-                    'message' => 'Não há músicas disponíveis.',
-                    'data' => []
-                ]);
-            }
-
-            return response()->json([
-                'message' => count($musics) . ' músicas encontradas',
-                'data' => $musics
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Erro ao buscar músicas.',
-                'details' => $e->getMessage()
-            ], 500);
-        }
-    }
 }
